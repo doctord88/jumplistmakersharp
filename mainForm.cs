@@ -7,6 +7,7 @@ using System.Windows.Forms;
 using System.Windows.Shell;
 using Shell32;
 using System.Drawing;
+using System.Xml;
 
 namespace JumpListMakerSharp
 {
@@ -18,6 +19,8 @@ namespace JumpListMakerSharp
         private List<Task> tasks;
         private DialogResult dr;
         private int imgCount = 0;
+        private List<string> fileNotFoundPaths = new List<string>();
+        private string workDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "JumpListMakerSharp");
 
         public mainForm()
         {
@@ -203,50 +206,57 @@ namespace JumpListMakerSharp
 
             for (int i = 0; i < dt.Rows.Count; i++)
             {
-                DataRow dr = dt.Rows[i];
-                if (dr.RowState != DataRowState.Deleted)
+                DataRow dr = null;
+                FileAttributes fa;
+                try
                 {
-                    ListViewItem lvi = new ListViewItem();
-                    if (dr[1].ToString().Equals("True"))
+                    dr = dt.Rows[i];
+                    if (dr.RowState != DataRowState.Deleted)
                     {
-                        lvi.Checked = true;
-                    }
-                    else
-                    {
-                        lvi.Checked = false;
-                    }
-                    lvi.SubItems.Add(dr[2].ToString());
-                    lvi.SubItems.Add(dr[3].ToString());
-                    lvi.SubItems.Add(dr[4].ToString());
-                    lvi.SubItems.Add(dr[5].ToString());
-
-                    FileAttributes fa = System.IO.File.GetAttributes(dr[4].ToString());
-                    if (fa == FileAttributes.Directory)
-                    {
-                        imageList1.Images.Add(Get.icon(dr[4].ToString(), Get.FileIconSize.Small, true));
-                    }
-                    else
-                    {
-                        imageList1.Images.Add(Get.icon(dr[4].ToString(), Get.FileIconSize.Small, false));
-                    }
-                    lvi.ImageIndex = imgCount;
-                    imgCount++;
-                    lvList.SmallImageList = imageList1;
-
-                    foreach (ListViewGroup group in lvList.Groups)
-                    {
-                        if (group.Header.Equals(dr[0].ToString()))
+                        ListViewItem lvi = new ListViewItem();
+                        if (dr[1].ToString().Equals("True"))
                         {
-                            lvi.Group = group;
+                            lvi.Checked = true;
                         }
+                        else
+                        {
+                            lvi.Checked = false;
+                        }
+                        lvi.SubItems.Add(dr[2].ToString());
+                        lvi.SubItems.Add(dr[3].ToString());
+                        lvi.SubItems.Add(dr[4].ToString());
+                        lvi.SubItems.Add(dr[5].ToString());
+
+                        fa = System.IO.File.GetAttributes(dr[4].ToString());
+                        if (fa == FileAttributes.Directory)
+                        {
+                            imageList1.Images.Add(Get.icon(dr[4].ToString(), Get.FileIconSize.Small, true));
+                        }
+                        else
+                        {
+                            imageList1.Images.Add(Get.icon(dr[4].ToString(), Get.FileIconSize.Small, false));
+                        }
+                        lvi.ImageIndex = imgCount;
+                        imgCount++;
+                        lvList.SmallImageList = imageList1;
+
+                        foreach (ListViewGroup group in lvList.Groups)
+                        {
+                            if (group.Header.Equals(dr[0].ToString()))
+                            {
+                                lvi.Group = group;
+                            }
+                        }
+                        lvList.Items.Add(lvi);
                     }
-                    lvList.Items.Add(lvi);
                 }
+                catch (Exception ex) { fileNotFoundPaths.Add(dr[4].ToString()); }
             }
             checkGroups();
             JumpListMakerSharp.Properties.Settings.Default.saveFile = path;
             this.Text = "JumpListMakerSharp - " + JumpListMakerSharp.Properties.Settings.Default.saveFile;
             JumpListMakerSharp.Properties.Settings.Default.needSave = false;
+            purgeOld(path);
         }
 
         private void loadFile()
@@ -297,51 +307,58 @@ namespace JumpListMakerSharp
 
                     for (int i = 0; i < dt.Rows.Count; i++)
                     {
-                        DataRow dr = dt.Rows[i];
-                        if (dr.RowState != DataRowState.Deleted)
+                        FileAttributes fa;
+                        DataRow dr = null;
+                        try
                         {
-                            ListViewItem lvi = new ListViewItem();
-                            if (dr[1].ToString().Equals("True"))
+                            dr = dt.Rows[i];
+                            if (dr.RowState != DataRowState.Deleted)
                             {
-                                lvi.Checked = true;
-                            }
-                            else
-                            {
-                                lvi.Checked = false;
-                            }
-                            lvi.SubItems.Add(dr[2].ToString());
-                            lvi.SubItems.Add(dr[3].ToString());
-                            lvi.SubItems.Add(dr[4].ToString());
-                            lvi.SubItems.Add(dr[5].ToString());
-
-                            FileAttributes fa = System.IO.File.GetAttributes(dr[4].ToString());
-                            if (fa == FileAttributes.Directory)
-                            {
-                                imageList1.Images.Add(Get.icon(dr[4].ToString(), Get.FileIconSize.Small, true));
-                            }
-                            else
-                            {
-                                imageList1.Images.Add(Get.icon(dr[4].ToString(), Get.FileIconSize.Small, false));
-                            }
-                            lvi.ImageIndex = imgCount;
-                            imgCount++;
-                            lvList.SmallImageList = imageList1;
-
-                            foreach (ListViewGroup group in lvList.Groups)
-                            {
-                                if (group.Header.Equals(dr[0].ToString()))
+                                ListViewItem lvi = new ListViewItem();
+                                if (dr[1].ToString().Equals("True"))
                                 {
-                                    lvi.Group = group;
+                                    lvi.Checked = true;
                                 }
+                                else
+                                {
+                                    lvi.Checked = false;
+                                }
+                                lvi.SubItems.Add(dr[2].ToString());
+                                lvi.SubItems.Add(dr[3].ToString());
+                                lvi.SubItems.Add(dr[4].ToString());
+                                lvi.SubItems.Add(dr[5].ToString());
+
+                                fa = System.IO.File.GetAttributes(dr[4].ToString());
+                                if (fa == FileAttributes.Directory)
+                                {
+                                    imageList1.Images.Add(Get.icon(dr[4].ToString(), Get.FileIconSize.Small, true));
+                                }
+                                else
+                                {
+                                    imageList1.Images.Add(Get.icon(dr[4].ToString(), Get.FileIconSize.Small, false));
+                                }
+                                lvi.ImageIndex = imgCount;
+                                imgCount++;
+                                lvList.SmallImageList = imageList1;
+
+                                foreach (ListViewGroup group in lvList.Groups)
+                                {
+                                    if (group.Header.Equals(dr[0].ToString()))
+                                    {
+                                        lvi.Group = group;
+                                    }
+                                }
+                                lvList.Items.Add(lvi);
                             }
-                            lvList.Items.Add(lvi);
                         }
+                        catch (Exception ex) { fileNotFoundPaths.Add(dr[4].ToString()); }
                     }
                 }
                 checkGroups();
                 JumpListMakerSharp.Properties.Settings.Default.saveFile = ofdLoad.FileName;
                 this.Text = "JumpListMakerSharp - " + JumpListMakerSharp.Properties.Settings.Default.saveFile;
                 JumpListMakerSharp.Properties.Settings.Default.needSave = false;
+                purgeOld(ofdLoad.FileName);
             }
             else
             {
@@ -349,7 +366,34 @@ namespace JumpListMakerSharp
             }
         }
 
-        private void loadToolStripMenuItem_Click(object sender, EventArgs e) //carica il file jlxml scelto in tabella
+        private void purgeOld(string path)
+        {
+            if (fileNotFoundPaths.Count > 0)
+            {
+                DialogResult res = MessageBox.Show("One or more items have been deleted, would you like to remove them from the list?",
+                    "Error:", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                if (res == System.Windows.Forms.DialogResult.Yes)
+                {
+                    XmlDocument doc = new XmlDocument();
+                    doc.Load(path);
+                    foreach (string s in fileNotFoundPaths)
+                    {
+                        XmlNode element = doc.SelectSingleNode("JumpList/Element[Path='" + s + "']");
+                        doc.DocumentElement.RemoveChild(element);
+                        try
+                        {
+                            System.IO.File.Delete(Path.Combine(workDir, element["Name"].InnerText + ".ico"));
+                        }
+                        catch (Exception ex) { }
+                    }
+                    doc.Save(path);
+                    MessageBox.Show("Removed elements: " + fileNotFoundPaths.Count, "Info:", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                fileNotFoundPaths.Clear();
+            }
+        }
+
+        private void loadToolStripMenuItem_Click(object sender, EventArgs e)
         {
             loadFile();
         }
@@ -395,7 +439,7 @@ namespace JumpListMakerSharp
             }
         }
 
-        private void tsmSave_Click(object sender, EventArgs e) //salva la tabella visualizzata in un file jlxml
+        private void tsmSave_Click(object sender, EventArgs e)
         {
             sfdSave.InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
             sfdSave.FileName = JumpListMakerSharp.Properties.Settings.Default.saveFile;
@@ -480,7 +524,6 @@ namespace JumpListMakerSharp
 
         private void setPath(DialogResult result, bool isDirectory)
         {
-            string icodir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "JumpListMakerSharp");
             try
             {
                 if (isDirectory == true)
@@ -492,7 +535,7 @@ namespace JumpListMakerSharp
                             txtName.Text = Path.GetFileName(fbdFolder.SelectedPath);
                             txtPath.Text = fbdFolder.SelectedPath;
                             System.Drawing.Icon ico = JumpListMakerSharp.Get.FolderIcon(txtPath.Text, Get.FileIconSize.Small);
-                            using (var save = new FileStream(Path.Combine(icodir, txtName.Text) + ".ico", FileMode.CreateNew))
+                            using (var save = new FileStream(Path.Combine(workDir, txtName.Text) + ".ico", FileMode.CreateNew))
                             {
                                 ico.ToBitmap().Save(save, System.Drawing.Imaging.ImageFormat.Bmp);
                             }
@@ -512,7 +555,7 @@ namespace JumpListMakerSharp
                             txtName.Text = Path.GetFileNameWithoutExtension(ofdChoose.FileName);
                             txtPath.Text = ofdChoose.FileName;
                             System.Drawing.Icon ico = JumpListMakerSharp.Get.FileIcon(txtPath.Text, Get.FileIconSize.Small);
-                            using (var save = new FileStream(Path.Combine(icodir, txtName.Text) + ".ico", FileMode.CreateNew))
+                            using (var save = new FileStream(Path.Combine(workDir, txtName.Text) + ".ico", FileMode.CreateNew))
                             {
                                 ico.ToBitmap().Save(save, System.Drawing.Imaging.ImageFormat.Bmp);
                             }
@@ -564,7 +607,7 @@ namespace JumpListMakerSharp
                     }
                     try
                     {
-                        System.IO.File.Delete(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "JumpListMakerSharp", eachItem.SubItems[1].Text + ".ico"));                        
+                        System.IO.File.Delete(Path.Combine(workDir, eachItem.SubItems[1].Text + ".ico"));
                     }
                     catch (Exception ex) { }
                 }
